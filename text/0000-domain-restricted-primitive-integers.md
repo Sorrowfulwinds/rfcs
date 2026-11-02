@@ -5,21 +5,20 @@
 
 ## Summary
 [summary]: #summary
-Add a new core primitive integer type "DomainInt" with programmer definable domain boundries to allow compile (and IDE) time assurance that overflows can or cannot occur without ASSERT or logic checking boilerplate. Subtype existing integer types such as signed/unsigned/size/NonZero to this type to unify behavior. Elevate overflow risks to a default compiler warning.
-
-DomaintInt<S>
-Unions of Finite Intervals
-
-One paragraph explanation of the feature.
+Add a new core primitive integer type "DomaintInt<S, [D]>" with definable finite intervals for the intent of improving programmer ergonomics and to allow compile (or IDE) time assurance that overflows and invalid values can never occur in the type. Subtype existing integer types such as signed/unsigned/NonZero to this type to unify behavior.
 
 ## Motivation
 [motivation]: #motivation
+
+Integer manipulation often requires or needs only a select set of ranges that are more specific than the powers of two provided by the existing i/u16/32/64/etc in the core. Rust currently has a built-in type that somewhat allows this in; NonZero<T> for integers. NonZero requires any values fed into it are verified through a constructor but it lacks convenience features, such as directly assigning a literal integer.
+
+
 
 Any changes to Rust should focus on solving a problem that users of Rust are having.
 This section should explain this problem in detail, including necessary background.
 
 It should also contain several specific use cases where this feature can help a user, and explain how it helps.
-This can then be used to guide the design of the feature.
+This can then be used to guide the design of the feature
 
 This section is one of the most important sections of any RFC, and can be lengthy.
 
