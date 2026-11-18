@@ -42,26 +42,33 @@ However these crates cannot offer features that require the compiler:
 - **Integer Unification.** `u8`, `i32`, `NonZeroU16`, etc, and any user domain structs are currently semi-related types with parallel, seperate APIs. They are all the same thing functionally: a valid domain over a storage type.
 
 
-### Never-fail APIs using only core types
-A benefit of this type is API's involving integer operations will be able to set their domain limits at the function call, pushing the verification step back up to the programmer instead of having to process it inside the function. This means the programmer, who likely understands their data more than the library programmer will be able to see the domain requirements and handle it on their end. Similarly this means the library programmer can potentially remove the failure mode for a function and have a "Never-fail" API. 
+### No-Fail APIs using only core types
+A benefit of this type is API's involving integer operations will be able to set their domain limits at the function call, pushing the verification step back up to the programmer instead of having to process it inside the function. This means the programmer, who likely understands their data more than the library programmer will be able to see the domain requirements and handle it on their end. Similarly this means the library programmer can potentially remove the failure mode for a function and have a API with no Panic, Result, or Option returns.
 ```rust
-//Domain must be validated at the function call by the programmer.
+//Domain must be valid at the function call and the programmer does not need to handle a return value.
 fn set_month(m: DomainInt<u8, [1..=12]>) 
 // versus
 //Domain is validated inside the function and the programmer must handle a potential Err() result from it.
 fn set_month(m: u8) -> Result<(), InvalidMonth>
 ```
-In this example `set_month()` is also now "self documenting", it sets the month and can only take a value of 1 to 12. "What values can this actually accept?" is now written in the types of the arguments.
-
-Validation moves to the boundary where untrusted data enters the program
-(`try_from`, `FromStr`), instead of being repeated at every call. Without
-flow-sensitive refinement (a non-goal here) callers with runtime values still
-perform one check; the benefit is that the check happens once, at the boundary,
-and the type then carries the proof.
+In this example `set_month()` is also now more "self documenting", it sets the month and can only take a value of 1 to 12. "What values can this actually accept?" is now written in the types of the arguments. Yippee.
+This moves domain contract validation to the boundary where untrusted data enters the process in `try_from()` and allows that contract to carry forward so long as the consuming domains stay the same or are subsets.
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
+<!--
+Explain the proposal as if it was already included in the language and you were teaching it to another Rust programmer. That generally means:
+
+- Introducing new named concepts.
+- Explaining the feature largely in terms of examples.
+- Explaining how Rust programmers should *think* about the feature, and how it should impact the way they use Rust. It should explain the impact as concretely as possible.
+- If applicable, provide sample error messages, deprecation warnings, or migration guidance.
+- If applicable, describe the differences between teaching this to existing Rust programmers and new Rust programmers.
+- Discuss how this impacts the ability to read, understand, and maintain Rust code. Code is read and modified far more often than written; will the proposed feature make code easier to maintain?
+
+For implementation-oriented RFCs (e.g. for compiler internals), this section should focus on how compiler contributors should think about the change, and give examples of its concrete impact. For policy RFCs, this section should provide an example-driven introduction to the policy, and explain its impact in concrete terms.
+-->
 ## Domains
 
 A **domain** is the set of values a type may hold. `u8` has the domain `0..=255`.
