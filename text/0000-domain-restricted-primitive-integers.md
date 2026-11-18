@@ -36,31 +36,22 @@ Current options for replicating some of this proposed type would be:
 
 However these crates cannot offer features that require the compiler:
 - **Literals.** `NonZero<T>` cannot be written as `let n: NonZeroU8 = 5;`; it requires `NonZeroU8::new(5).unwrap()` (or a `const` block). The same limitation applies to every programmer created domain type. A literal's validity can be determined at compile time, or even during writing with rust-analyzer, and writing out `::new()` boilerplate makes code longer and distracts from what is actually occuring.
-- **Niches.** The compiler can use out-of-domain bit patterns to make `Option<DomainInt<u8, [0..=10]>>` one byte. Niches are a large reason for the addition of the `NonZero<T>` type and this would do a strong job of cleaning up that types intents and expanding it to more than just single all zero niches.
-- **Subset conversions.** `DomainInt<u8, [1..=20]>` always converts losslessly into `DomainInt<u8, [1..=100]>`. The compiler can add traits for easy conversion of any subset domains with just `.into()` and can automatically derive this for any arbitrary set of domains. Knowing you can glaze over `.into()` conversions and that any `try_into()` actually matters is outstanding for code review and clarity.
-- **Exaustive Matching.** Allowing the programmer to express the exact domains of an integer, allows the compiler to shorten matching against those domains to just the needed arms. Skipping `_` or `unreachable!()` usage removes further boilerplate.
-- **Integer Unification.** `u8`, `i32`, `NonZeroU16`, etc, and any user domain structs are today unrelated types with parallel, seperate APIs. They are all the same thing functionally: a domain over a storage type.
+- **Niches.** The compiler can use out-of-domain bit patterns to make irregular domains like `Option<DomainInt<u8, [0..=10]>>` one byte. Niches are a large reason for the addition of the `NonZero<T>` type and this would do a strong job of cleaning up that types intents and allowing feature expansion to niches larger than single values.
+- **Subset conversions.** `DomainInt<u8, [1..=20]>` always converts losslessly into `DomainInt<u8, [1..=100]>`. The compiler can add traits for easy conversion of any subset domains to superset domains with just `.into()` and could derive this for any arbitrary set of domains. Increasng the number of potential `.into()` conversion and reducing any `try_into()` conversions is outstanding for speeding up code review and clarity.
+- **Exaustive Matching.** Allowing the programmer to express the exact domains of an integer, allows the compiler to shorten matching against those domains to just the needed arms. Skipping `_` or `unreachable!()` usage removes further (now) unnecesary boilerplate.
+- **Integer Unification.** `u8`, `i32`, `NonZeroU16`, etc, and any user domain structs are currently semi-related types with parallel, seperate APIs. They are all the same thing functionally: a valid domain over a storage type.
 
-## Motivating examples
 
-*Game state.* A player attribute ranges over `1..=20` and a skill over `1..=100`.
-Adding an attribute bonus to a skill should saturate at the skill's maximum, and
-nothing should be able to hold a value outside either range.
-
-*Robot control.* A joint controller accepts a 32-bit integer, but each joint has
-a physical range. A command outside that range damages hardware. The range
-belongs in the type of the joint field so that an invalid command cannot be
-constructed in safe code.
-
-## Never-fail APIs
-
-If a function only accepts valid months, its signature can say so:
-
+### Never-fail APIs using only core types
+A benefit of this type is API's involving integer operations will be able to set their domain limits at the function call, pushing the verification step back up to the programmer instead of having to process it inside the function. This means the programmer, who likely understands their data more than the library programmer will be able to see the domain requirements and handle it on their end. Similarly this means the library programmer can potentially remove the failure mode for a function and have a "Never-fail" API. 
 ```rust
-fn set_month(m: DomainInt<u8, [1..=12]>)            // cannot fail
+//Domain must be validated at the function call by the programmer.
+fn set_month(m: DomainInt<u8, [1..=12]>) 
 // versus
-fn set_month(m: u8) -> Result<(), InvalidMonth>     // every caller handles an error
+//Domain is validated inside the function and the programmer must handle a potential Err() result from it.
+fn set_month(m: u8) -> Result<(), InvalidMonth>
 ```
+In this example `set_month()` is also now "self documenting", it sets the month and can only take a value of 1 to 12. "What values can this actually accept?" is now written in the types of the arguments.
 
 Validation moves to the boundary where untrusted data enters the program
 (`try_from`, `FromStr`), instead of being repeated at every call. Without
